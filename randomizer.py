@@ -1,7 +1,6 @@
 import random
-import PIL
-
-from PIL import image
+import subprocess
+from PIL import Image
 
 sample_table_lowercase = { }
 lowercase_alphabet = "abcdefghijklmnopqrstuvwxyz"
@@ -15,9 +14,14 @@ for letter in lowercase_alphabet:
 
         sample_table_lowercase[letter] = token
 
-typed_letter = input("enter a letter: ")
+typed_letter = input("enter a letter: ").lower()
 
 for letter in typed_letter:
     if letter in sample_table_lowercase:
-        print(random.choice(sample_table_lowercase[letter]))
-        img = Image.open('a_2.jpg')
+        selected_token = random.choice(sample_table_lowercase[letter])
+        
+        print(selected_token)
+
+        filename = selected_token + ".jpg"
+        img = Image.open(filename)
+        subprocess.run(["feh", filename])
