@@ -12,7 +12,7 @@ for letter in lowercase_alphabet:
     for number in range(1, copy_count + 1):
         token.append(letter + "_" + str(number))
 
-        sample_table_lowercase[letter] = token
+    sample_table_lowercase[letter] = token
 
 typed_letter = input("enter a letter: ").lower()
 
