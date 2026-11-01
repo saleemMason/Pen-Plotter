@@ -1,16 +1,67 @@
 <!DOCTYPE html>
 
-#head
-
-
 <html lang="en">
+
 <head>
-    add your picture below
+    
+    <meta charset="UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>Document</title>
+    
+    <style>
+        @font-face{
+            font-family: "MyHand";
+            src: url("Myfont-Regular.ttf");
+        }
+
+        :root {
+            --s:0.5;
+        }
+        
+        body {
+            background: #ddd;
+            margin: 0;
+            padding: 20px;
+            font-family: system-ui, sand-serif;
+        }
+
+        .a4 {
+            width: 157.5mm;
+            height: 222.75mm;
+            background: white;
+            border: 1px solid #333;
+            box-sizing: border-box;
+        }
+
+        .a4 iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
 </head>
+<body>
+    <p>
+        <input type="file" id="pdfInput" accept="application/pdf">
+    </p>
+    <div class="a4">
+        <iframe id="pdfView"></iframe>
+    </div>
 
+    <script>
+        const input = document.getElementById('pdfInput');
+        const view = document.getElementById('pdfView');
 
+        input.addEventListener("change", () => {
+            const file = input.files[0];
+            if (!file)return;
+            view.src = URL.createObjectURL(file) + "#toolbar=0&view=FitH";
 
-
+        });
+        </script>
+</body>
 
 
 
