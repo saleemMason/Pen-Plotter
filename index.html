@@ -27,12 +27,49 @@
             font-family: system-ui, sand-serif;
         }
 
-        .a4 {
-            width: 157.5mm;
-            height: 222.75mm;
-            background: white;
-            border: 1px solid #333;
+        .layout {
+            display: flex;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 60vw;
+        }
+
+        .controls .row {
+            display: flex;
+            gap: 8px;
+            align-items:center;
+            flex-wrap: wrap;
+        }
+
+        textarea {
+            width: 320px;
+            height: 220px;
+            min-width: 180px;
+            min-height: 100px;
+            max-width: 60vw;
             box-sizing: border-box;
+            font-size: 16px;
+            padding: 8px;
+            resize: both;
+        }
+
+        input[type="number"] { width: 60px; }
+
+        .a4 {
+            position: relative;
+            flex: 0 0 auto;
+            width: calc(210mm * var(--s));
+            height: calc(297mm * var(--s));
+            background: white;
+            box-shadow: 0 0 0 1px #333;
+            overflow: hidden;
         }
 
         .a4 iframe {
@@ -40,9 +77,65 @@
             height: 100%;
             border: none;
         }
+
+        .tb {
+            position: absolute;
+            box-sizing: border-box;
+            border: 2px dotted rgba(37, 99, 235, 0.55);
+            cursor: move;
+            touch-action: none;
+            user-select: none;
+            z-index: 1;
+        }
+
+        .tb.selected { border-color:#2563eb; z-index:2;}
+
+        .tb .txt {
+            font-family: "MyHand", cursive;
+            white-space: pre-wrap;
+            pointer-events: none;
+            overflow: visible;
+        }
+
+        .handle {
+            display: none;
+            position: absolute;
+            background: #2563eb;
+            touch-action: none;
+        }
+
+        .tb.selected .handle { display: block; }
+
+        .handle.rotate {
+            left: 50%; top: -30px;
+            width: 14px; height: 14px;
+            margin-left: -7px;
+            border-radius: 50%;
+            cursor: grab;
+        }
+
+        .handle.rotate::after {
+            content: "";
+            position: absolute;
+            left: 50%; top: 100%;
+            height: 16px;
+            border-left: 2px dotted #2563eb;
+        }
+
+        body.hide-frames .tb {border-color:transparent;}
+        body.hide-frames .handle {display:none !important;}
     </style>
 </head>
 <body>
+    <div class="layout">
+        <div class="controls">
+            <input type="file" id="pdfInput" accept="application/pdf">
+            <div class="controls">
+                <button id="addBtn">Add a text box</button>
+                <button id="delBtn">Delete the box</button>
+            </div>
+        </div>
+    </div>
     <p>
         <input type="file" id="pdfInput" accept="application/pdf">
     </p>
