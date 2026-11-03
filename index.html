@@ -24,7 +24,7 @@
             background: #ddd;
             margin: 0;
             padding: 20px;
-            font-family: system-ui, sand-serif;
+            font-family: system-ui, sans-serif;
         }
 
         .layout {
@@ -106,6 +106,13 @@
 
         .tb.selected .handle { display: block; }
 
+        .handle.resize {
+            right: -8px; bottom: -8px;
+            width: 14px; height: 14px;
+            border-radius: 3px;
+            cursor: nwse-resize;
+        }
+
         .handle.rotate {
             left: 50%; top: -30px;
             width: 14px; height: 14px;
@@ -127,43 +134,181 @@
     </style>
 </head>
 <body>
-    <div class="layout">
-        <div class="controls">
-            <input type="file" id="pdfInput" accept="application/pdf">
-            <div class="controls">
-                <button id="addBtn">Add a text box</button>
-                <button id="delBtn">Delete the box</button>
-            </div>
+<div class="layout">
+    <div class="controls">
+        <input type="file" id="pdfInput" accept="application/pdf">
+            
+        <div class="row">
+            <button id="addBtn">Add a text box</button>
+            <button id="delBtn" disabled>Delete the box</button>
+        </div>
+        
+        <textarea id="textInput" placeholder="Add a text box and type your text here..."></textarea>
+            
+        <div class="row">
+            <label>Letter size (mm) <input type="number" id="sizeInput" value="10" min="2" max="60" step="0.5" disabled></label>
+            <label><input type="checkbox" id="hideFrames"> Hide frames</label>
         </div>
     </div>
-    <p>
-        <input type="file" id="pdfInput" accept="application/pdf">
-    </p>
-    <div class="a4">
-        <iframe id="pdfView"></iframe>
+
+    <div class="a4" id="sheet">
+        <iframge id="pdfview"></iframe>
     </div>
-
+</div>    
     <script>
-        const input = document.getElementById('pdfInput');
-        const view = document.getElementById('pdfView');
+        const sheet = document.getElementById("sheet");
+        const pdfInput = document.getElementById("pdfInput");
+        const addBtn = document.getElementById("addBtn");
+        const pdfView = document.getElementById("pdfView");
+        const textInput = document.getElementById("textInput");
+        const sizeInput = document.getElementById("sizeInput");
+        const delBtn = document.getElementById("delBtn");
+        const A4_WIDTH_MM = 210;
+        const pxPerMm = () => sheet.clientWidth / A4_WIDTH_MM;
+        const boxes = [];
+        let selected = null;
 
-        input.addEventListener("change", () => {
-            const file = input.files[0];
-            if (!file)return;
-            view.src = URL.createObjectURL(file) + "#toolbar=0&view=FitH";
-
+        pdfInput.addEventListener("change", () => {
+            const file = pdfInput.files[0];
+            if (!file) return;
+            pdfView.src = URL.createObjectURL(file) + "#toolbar=0&view=FitH";
         });
-        </script>
+
+        function render(b) {
+            const el = b.el;
+            el.style.left = `calc(${b.x}mm * var(--s))`;
+            el.style.top = `calc(${b.y}mm * var(--s))`;
+            el.style.width = `calc(${b.w}mm * var(--s))`;
+            el.style.height = `calc(${b.h}mm * var(--s))`;
+            el.style.transform = `rotate(${b.rot}deg)`;
+            b.txt.style.fontSize = `calc(${b.fs}mm * var(--s))`;
+            b.txt.style.lineHeight = `calc(${b.fs * 1.6}mm * var(--s))`;
+            b.txt.textContent = b.text;
+        }
+
+        function select(b) {
+            selected = b;
+            boxes.forEach(o => o.el.classList.toggle("selected", o === b));
+            const on = !!b;
+            textInput.disabled = sizeInput.disabled = delBtn.disabled = !on;
+            textInput.value = b ? b.text : "";
+            sizeInput.value = b ? b.fs : 10;
+        }
+
+        function track(e, onMove) {
+            const t = e.currentTarget;
+            t.setPointerCapture(e.pointerId);
+            const up = () => {
+                t.removeEventListener("pointermove", onMove);
+                t.removeEventListener("pointerup", up);
+                t.removeEventListener("pointercancel", up);
+            };
+            t.addEventListener("pointermove", onMove);
+            t.addEventListener("pointerup", up);
+            t.addEventListener("pointercancel", up);
+        }
+
+        function addBox() {
+            const b = { x: 30, y: 25, w: 150, h: 45, rot:0, fs: 10, text:""};
+
+            b.el = document.createElement("div");
+            b.el.className = "tb";
+            b.txt = document.createElement("div");
+            b.txt.className = "txt";
+            const rot = document.createElement("div");
+            rot.className = "handle rotate";
+            const rsz = document.createElement("div");
+            rsz.className = "handle resize";
+            b.el.append(b.txt, rot, rsz);
+            sheet.appendChild(b.el);
+            boxes.push(b);
+
+            b.el.addEventListener("pointerdown", e => {
+                if (e.target !== b.el) return;
+                select(b);
+                let lx = e.clientX, ly = e.clientY;
+                track(e, ev => {
+                    const k = pxPerMm();
+                    b.x += (ev.clientX - lx) / k;
+                    b.y += (ev.clientY - ly) / k;
+                    lx = ev.clientX; ly = ev.clientY;
+                    render(b);
+                });
+            });
+
+            rot.addEventListener("pointerdown", e => {
+                e.stopPropagation();
+                select(b);
+                const r = b.el.getBoundingClientRect();
+                const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+                track(e, ev => {
+                    let deg = Math.atan2(ev.clientY - cy, ev.clientX - cx) * 180 / Math.PI + 90;
+                    if(ev.shiftKey) deg = Math.round(deg / 15) * 15;
+                    b.rot = Math.round (deg * 10) / 10;
+                    render(b);
+                });
+            });
+
+            rsz.addEventListener("pointerdown", e => {
+                e.stopPropagation();
+                select(b);
+                const k = pxPerMm();
+                const th = b.rot * Math.PI / 180, cos = Math.cos(th), sin = Math.sin(th);
+                const x0 = e.clientX, y0 = e.clientY;
+                const w0 = b.w, h0 = b.h;
+                const cx0 = b.x + w0 / 2, cy0 = b.y + h0 /2;
+                track(e, ev => {
+                    const dx = (ev.clientX - x0) / k, dy = (ev.clientY - y0) / k;
+                    const dw = dx * cos + dy * sin;
+                    const dh = -dx * sin + dy * cos;
+                    const w = Math.max(10, w0 + dw), h = Math.max(10, h0 + dh);
+                    const rw = w - w0, rh = h -h0;
+                    const cx = cx0 + (rw / 2) * cos - (rh / 2) * sin;
+                    const cy = cy0 + (rw / 2) * sin + (rh / 2) * cos;
+                    b.w = w; b.h = h;
+                    b.x = cx - w / 2; b.y = cy - h / 2;
+                    render(b);
+            });
+        });
+
+        render(b);
+        select(b);
+        textInput.focus();
+    }
+
+    addBtn.addEventListener("click", addBox);
+    
+    delBtn.addEventListener("click", () => {
+        if (!selected) return;
+        selected.el.remove();
+        boxes.splice(boxes.indexOf(selected), 1);
+        select(null);
+    });
+
+    textInput.addEventListener("input", () => {
+        if (!selected) return;
+        selected.text = textInput.value;
+        render(selected);
+    });
+
+    sizeInput.addEventListener("input", () => {
+        if (!selected) return;
+        const v = parseFloat(sizeInput.value);
+        if (v > 0) { selected.fs = v; render(selected); }
+    });
+
+    document.addEventListener("pointerdown", e => {
+        if (!e.target.closest(".tb, .controls")) select(null);
+    });
+
+    window.addEventListener("blur", () => {
+        if (document.activeElement === pdfView) select(null);
+    });
+    document.getElementById("hideFrames").addEventListener("change", e => {
+        document.body.classList.toggle("hide-frames", e.target.checked);
+    });
+
+
+    </script>
 </body>
-
-
-
-
-
-
-
-
-
-
-
 </html>
