@@ -7,3 +7,5 @@ I want to add different angles that the letters can be set to and also train it 
 I am going to add a export as gcode button so I can send it to my pen plotter.
 
 other than cleaning the UI a bit I dont think it needs anythingelse besides what I stated before.
+
+How to run: go to this link and open it -> https://saleemmason.github.io/Pen-Plotter

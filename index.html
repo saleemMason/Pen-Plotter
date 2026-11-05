@@ -133,6 +133,28 @@
 
         body.hide-frames .tb {border-color:transparent;}
         body.hide-frames .handle {display:none !important;}
+
+        #overlay {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        #overlay polyline {
+            fill: none;
+            stroke: #e11d48;
+            stroke-width: 0.4;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        details { max-width: 320px; }
+        details.row { margin-top: 6px;}
+        input[type="text"] { width: 150px; }
+        #status { max-width: 320px; font-size: 14px; white-space: pre-wrap;}
     </style>
 </head>
 <body>
@@ -145,6 +167,33 @@
             <button id="delBtn" disabled>Delete the box</button>
         </div>
         
+        <details>
+            <summary>Plotter settings</summary>
+            <div class="row">
+                <label>Paper corner X <input type="number" id="paperX" value="0"></label>
+                <label>Y<input type="number" id="paperY" value="0"></label>
+            </div>
+
+            <div class="row">
+                <label>Bed max X <input type="number" id="bedX" value="235"></label>
+                <label>Y<input type="number" id="bedY" value="235"></label>
+            </div>
+
+            <div class="row">
+                <label>Pen up <input type="text" id="penUpCMD" value="G1 Z5 f3000"></label>
+            </div>
+            <div class="row">
+                <label>Pen down <input type="text" id="penDownCmd" value="G1 Z0 F1000"></label>
+            </div>
+        </details>
+
+        <div class="row">
+            <button id="previewBtn">Preview strokes</button>
+            <button id="exportBtn">Export G-code</button>
+        </div>
+        <div id="status"></div>
+
+        </details>
         <textarea id="textInput" placeholder="Add a text box and type your text here..."></textarea>
             
         <div class="row">
@@ -154,14 +203,14 @@
     </div>
 
     <div class="a4" id="sheet">
-        <iframge id="pdfview"></iframe>
+        <iframe id="pdfview"></iframe>
     </div>
 </div>    
     <script>
         const sheet = document.getElementById("sheet");
         const pdfInput = document.getElementById("pdfInput");
         const addBtn = document.getElementById("addBtn");
-        const pdfView = document.getElementById("pdfView");
+        const pdfView = document.getElementById("pdfview");
         const textInput = document.getElementById("textInput");
         const sizeInput = document.getElementById("sizeInput");
         const delBtn = document.getElementById("delBtn");
