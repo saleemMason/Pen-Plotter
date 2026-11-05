@@ -200,6 +200,30 @@
             <label>Letter size (mm) <input type="number" id="sizeInput" value="10" min="2" max="60" step="0.5" disabled></label>
             <label><input type="checkbox" id="hideFrames"> Hide frames</label>
         </div>
+        <details>
+            <summary>Plotter settings</summary>
+            <div class="row">
+                <label>Paper corner X <input type="number" id="paperX" value="0"></label>
+                <label>Y <input type="number" id="paperY" value="0"></label>
+            </div>
+            <div class="row">
+                <label>Bed max X <input type="number" id="bedX" value="235"></label>
+                <label>Y <input type="number" id="bedY" value="235"></label>
+            </div>
+            <div class="row">
+                <label>Pen up <input type="text" id="penUpCmd" value="G1 Z5 F3000"></label>
+            </div>
+            <div class="row">
+                <label>Pen down <input type="text" id="penDownCmd" value="G1 Z0 F1000"></label>
+            </div>
+        </details>
+        
+        <div class="row">
+            <button id="previewBtn">Preview strokes</button>
+            <button id="exportBtn">Export G-code</button>
+        </div>
+
+        <div id="status"></div>
     </div>
 
     <div class="a4" id="sheet">
@@ -217,6 +241,17 @@
         const A4_WIDTH_MM = 210;
         const pxPerMm = () => sheet.clientWidth / A4_WIDTH_MM;
         const boxes = [];
+        const $ = id => document.getElementById(id);
+        const RENDER_PX = 300;
+        const PAPER_H_MM = 0.1;
+        const MIN_STROKE_MM = 0.4;
+        const DRAW_FEED = 2000, TRAVEL_FEED = 6000;
+        const setStatus = t => { $("status").textContent = t; };
+        const overlay = documnet.createElement("http://www.w3.org/2000/svg", "svg");
+        overlay.id = "overlay";
+        overlay.setAttribute("viewBox", "0 0 210 297");
+        overlay.setAttribute("preserveAspectRatio", "none");
+        sheet.appendChild(overlay);
         let selected = null;
 
         pdfInput.addEventListener("change", () => {
@@ -226,6 +261,7 @@
         });
 
         function render(b) {
+            clearPreview();
             const el = b.el;
             el.style.left = `calc(${b.x}mm * var(--s))`;
             el.style.top = `calc(${b.y}mm * var(--s))`;
@@ -358,6 +394,33 @@
     document.getElementById("hideFrames").addEventListener("change", e => {
         document.body.classList.toggle("hide-frames", e.target.checked);
     });
+
+    function showPreview(strokes) {
+        overlay.innerHTML = strokes.map(s =>
+           `<polyline points="${s.map(p => p [0].toFixed(2) + "," + p[1].toFixed(2)).join(" ")}"/>`
+        ).join("");
+    }
+    function clearPreview() { overlay.innerHTML = ""; }
+
+    function thin(img, w, h) {
+        let changed = true;
+        while (changed) {
+            changed = false;
+            for (let step = 0; step < 2; step++) {
+                const del = [];
+                for (let y = 1; y < h - 1; y++) {
+                    for (let x = 1; x < w - 1; x++) {
+                        const i = y * w + x;
+                        if(!img[i]) continue;
+                        const p2 = img[i - w], p3 = img[i - w + 1], p4 = img[i + 1], p5 = img[i + w + 1], p6 = img[i + w], p7 = img[i + w - 1], p8 = img[i - 1], p9 = img[i - w - 1];
+                        const B = p2 + p3 + p4 + p5 + p6 + p7 + p8 + p9;
+                        if (B < 2 || B > 6) continue;
+                        const A
+                    }
+                }
+            }
+        }
+    }
 
 
     </script>
