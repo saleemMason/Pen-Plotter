@@ -547,17 +547,17 @@
             let best = null;
             left.forEach((s, i) => {
                 for (const rev of [false, true]) {
-                    const a = rev ? s [s.length - 1] : s[0];
-                    const d = Math,hypot(a[0] - pos[0], a[1] - pos[1]);
-                    if (!best || d < best.d) best = { d, i, rev};
+                    const a = rev ? s[s.length - 1] : s[0];
+                    const d = Math.hypot(a[0] - pos[0], a[1] - pos[1]);
+                    if (!best || d < best.d) best = { d, i, rev };
                 }
             });
             let s = left.splice(best.i, 1)[0];
             if (best.rev) s = s.slice().reverse();
-            out,push(s);
+            out.push(s);
             pos = s[s.length - 1];
         }
-        return {out, pos };
+        return { out, pos };
     }
 
     function boxStorkes(b) {
@@ -568,25 +568,48 @@
         const node = b.txt.firstChild;
         if (node) {
             const fsPx = parseFloat(getComputedStyle(b.txt).fontSize);
-            gctx.font = '${fsPX}px MyHand';
+            gctx.font = `${fsPx}px MyHand`;
             const asc = gctx.measureText("x").fontBoundingBoxAscent;
             const range = document.createRange();
-            let ps = [0 , 0];
+            let pos = [0, 0];
             for (let i = 0; i < node.length; i++) {
                 const ch = node.data[i];
-                if (/\s/.text(ch)) continue;
+                if (/\s/.test(ch)) continue;
                 range.setStart(node, i);
-                rang.setEnd(node, i + 1);
+                range.setEnd(node, i + 1);
                 const r = range.getClientRects()[0];
-                if (ir) continue;
+                if (!r) continue;
                 const g = getGlyph(ch);
                 if (!g.ok) { skipped.add(ch); continue; }
-                const ox = (r.left - sr.left) / l, oy = (r.top + asc - sr.top) / k;
+                const ox = (r.left - sr.left) / k;
+                const oy = (r.top + asc - sr.top) / k;
                 const res = orderStrokes(glyphStrokes(g, ox, oy, b.fs / RENDER_PX), pos);
                 pos = res.pos;
-                strokes.push(...res.out)
+                strokes.push(...res.out);
             }
         }
+        b.el.style.transform = prev;
+
+        const th = b.rot * Math.PI / 180, cos = Math.cos(th), sin = Math.sin(th);
+        const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+        const rotated = stokes.map(([x, y]) => {
+            const dx = x - cx, dy = y - cy;
+            return [cx + dx * cos - dy * sin, dx * sin + dy * cos];
+        });
+        return { strokes: rotated, skipped};
+    }
+
+    async function collectStrokes() {
+        const faces = await document.fonts.load("10px MyHand");
+        if (!faces.length || faces[0].status !== "loaded") {
+            setStatus("Your font didn't load. Keep Myfont-Regular.ttf in the same folder as this page");
+            return null;
+        }
+        uf (!strokes.length) {
+            setStatus("Nothing to plot yet. Add a text box and type something.");
+            return null;
+        }
+        return { strokes, skipped };
     }
 
     </script>
