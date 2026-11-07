@@ -612,6 +612,27 @@
         return { strokes, skipped };
     }
 
+    function buildGcode(strokes) {
+        const px = parseFloat($("paperX").value) || 0;
+        const py = parseFloat($("paperY").value) ||0;
+        const bedX = parseFloat($("bedX").value) || 235;
+        const bedY = parseFloat($("bedY").value) || 235;
+        const up = $("penUpCmd").value, down = $("penDownCmd").value;
+        const lines = ["G21 ; mm", "G90 ; absolute", "G28 ; home all axes", up];
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (const s of strokes) {
+            const pts = s.map(([x,y]) => [px + x, py + (PAPER_H_MM - y)]);
+            for (const [x, y] of pts) {
+                minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+            }
+            lines.push('G0 X${pts[0][0].toFuxed(2)} Y${pts[0][1].toFixed(2)} F${TRAVEL_FEED}',  down);
+            for (let i = 1; i < pts.length; i++)
+                lines.push('G1 X${pts[i][0].tofixed(2)} Y${pts[i][1].toFixed(2)} F${DRAW_FEED}');
+            lines.push(up);
+        }
+    }
+
     </script>
 </body>
 </html>
