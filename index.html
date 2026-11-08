@@ -605,7 +605,7 @@
             setStatus("Your font didn't load. Keep Myfont-Regular.ttf in the same folder as this page");
             return null;
         }
-        uf (!strokes.length) {
+        if (!strokes.length) {
             setStatus("Nothing to plot yet. Add a text box and type something.");
             return null;
         }
@@ -614,24 +614,56 @@
 
     function buildGcode(strokes) {
         const px = parseFloat($("paperX").value) || 0;
-        const py = parseFloat($("paperY").value) ||0;
+        const py = parseFloat($("paperY").value) || 0;
         const bedX = parseFloat($("bedX").value) || 235;
         const bedY = parseFloat($("bedY").value) || 235;
         const up = $("penUpCmd").value, down = $("penDownCmd").value;
         const lines = ["G21 ; mm", "G90 ; absolute", "G28 ; home all axes", up];
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
         for (const s of strokes) {
-            const pts = s.map(([x,y]) => [px + x, py + (PAPER_H_MM - y)]);
+            const pts = s.map(([x, y]) => [px + x, py + (PAPER_H_MM - y)]);
             for (const [x, y] of pts) {
-                minX = Math.min(minX, x); maxX = Math.max(maxX, x);
-                minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+                minX = Math.min(minX, x);
+                maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y);
+                maxY = Math.max(maxY, y);
             }
-            lines.push('G0 X${pts[0][0].toFuxed(2)} Y${pts[0][1].toFixed(2)} F${TRAVEL_FEED}',  down);
-            for (let i = 1; i < pts.length; i++)
-                lines.push('G1 X${pts[i][0].tofixed(2)} Y${pts[i][1].toFixed(2)} F${DRAW_FEED}');
+            lines.push(`G0 X${pts[0][0].toFixed(2)} Y${pts[0][1].toFixed(2)} F${TRAVEL_FEED}`, down);
+            for (let i = 1; i < pts.length; i++) {
+                lines.push(`G1 X${pts[i][0].toFixed(2)} Y${pts[i][1].toFixed(2)} F${DRAW_FEED}`);
+            }
             lines.push(up);
         }
+
+        lines.push(`G0 X0 Y0 F${TRAVEL_FEED}`, "M84 ; motors off");
+        let warning = "";
+        if (minX < 0 || minY < 0 || maxX > bedX || maxY > bedY) {
+            warning =
+                `Some of the writing is outside your machine's range (X 0-${bedX}, Y 0-${bedY}).\n` +
+                `It spans X ${minX.toFixed(0)} to ${maxX.toFixed(0)} and Y ${minY.toFixed(0)} to ${maxY.toFixed(0)}.`;
+        }
+        return { text: lines.join("\n") + "\n", warning, minX, maxX, minY, maxY };
     }
+
+    const skippedNote = s => s.size ? '/nSkipped (not in your fault): ${[...s].join(" ")}' : "";
+
+    $("previewBtn").addEventListener("click" , async () => {
+        const res = await collectStrokes();
+        if (!res) return;
+        showPreview(res.strokes);
+        if (out.warning && !confirm(out.warning + "/n/nExport anyway?")) return;
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([out.text], { type: "text/plain"}));
+        a.download = "handwriting.gcode";
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        setStatus('Exported handwriting.gcode: ${res.strokes.length} strokes.\n' + 'Machine X ${out.minX.toFixed(0)}-${out.maxX.tofixed(0)}, ${out.minY.toFixed(0)}-${out.maxY.toFixed(0)}.' + 
+            skippedNote(res.skipped));
+    });
+    
+
+
 
     </script>
 </body>
