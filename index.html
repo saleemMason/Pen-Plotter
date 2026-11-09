@@ -18,6 +18,8 @@
 
         :root {
             --s:0.5;
+            --user-font: "MyHand";
+
         }
         
         body {
@@ -34,7 +36,7 @@
             gap: 20px;
         }
 
-        .controls {
+        .controlssa {
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -91,7 +93,7 @@
         .tb.selected { border-color:#2563eb; z-index:2;}
 
         .tb .txt {
-            font-family: "MyHand", cursive;
+            font-family: var(--user-font), cursive;
             white-space: pre-wrap;
             pointer-events: none;
             overflow: visible;
@@ -248,11 +250,13 @@
         const DRAW_FEED = 2000, TRAVEL_FEED = 6000;
         const setStatus = t => { $("status").textContent = t; };
         const overlay = documnet.createElement("http://www.w3.org/2000/svg", "svg");
+        const fontInput = document.getElementById("fontInput");
         overlay.id = "overlay";
         overlay.setAttribute("viewBox", "0 0 210 297");
         overlay.setAttribute("preserveAspectRatio", "none");
         sheet.appendChild(overlay);
         let selected = null;
+        let currentFontFamily = "MyHand";
 
         pdfInput.addEventListener("change", () => {
             const file = pdfInput.files[0];
@@ -484,16 +488,17 @@
     const gctx = gcv.getContext("2d", { willReadFrequently: true});
 
     function getGlyph(ch) {
-        if (glyphCache[ch]) return glyphCache[ch];
+        if (glyphCache[ch + currentFontFamily]) return glyphCache[ch + currentFontFamily];
+        glyphCache[ch + currentFontFamily] = g;
         const g = { ok: false, paths: [] };
         glyphCache[ch] = g;
 
-        gctx.font = "100px MyHand, serif";
+        gctx.font = '${RENDER_PX}px ${currentFontFamily} serif';
         const m = gctx.measureText(ch);
         const asc = Math.ceil(m.fontBoundingBoxAscent), dexc = Math.ceil(m.fontBoundingBoxDescent);
         const pad = Math.ceil(m.width) + 2 * pad, H = asc + desc + 2 * pad;
         gcv.width = W; gcv.height = H;
-        gctx.font = '${RENDER_PX}px MyHand';
+        gctx.font = '${RENDER_PX}px ${currentFontFamily}, serif';
         gctx.fillStyle = '#000';
         gctx.fillText(ch, pad, pad + asc);
         const data = gctx.getImageData(0,0, W, H).data;
@@ -661,6 +666,29 @@
         setStatus('Exported handwriting.gcode: ${res.strokes.length} strokes.\n' + 'Machine X ${out.minX.toFixed(0)}-${out.maxX.tofixed(0)}, ${out.minY.toFixed(0)}-${out.maxY.toFixed(0)}.' + 
             skippedNote(res.skipped));
     });
+
+    fontInput.addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setStatus('Loading font "${file.name}"...');
+        try {
+            const fontNames = "CustomUserFont_" + Date.now();
+            const fontUrl = URL.createObjectURL(file);
+            const customFontFace = new FontFace(fontName, 'url(${fontUrl})');
+
+            await customFontFace.load();
+            document.fonts.add(customFontFace);
+
+            currentFontFamily = fontName;
+            document.documentElement.style.setProperty('--user-font', '"${fontName}"');
+
+            setStatus('Font "${file.name}" loaded successfully!');
+            if (selected) render(selected);
+        } catch (err) {
+            setStatus("Error loading font file. Ensure it is a valit TTF/OTF.")
+            console.error(err);
+        }
+    })
     
 
 
